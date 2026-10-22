@@ -68,6 +68,7 @@ body {
 
 #hangar[hidden],
 #tally[hidden],
+#tutorial[hidden],
 #hud[hidden],
 #hud-hint[hidden] {
   display: none;
@@ -244,6 +245,59 @@ h2 {
   letter-spacing: 0.04em;
 }
 
+#tutorial {
+  flex: none;
+  min-height: 0;
+  margin-top: 8px;
+  padding: 14px 14px 8px;
+  overflow: auto;
+  border: 1px solid rgba(90, 58, 36, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 250, 240, 0.78);
+}
+
+#tutorial h2 {
+  font-size: clamp(26px, 4vw, 34px);
+}
+
+#help {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+#lesson-body {
+  margin: 14px 0 0;
+  flex: none;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  flex: none;
+}
+
+.dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(90, 58, 36, 0.25);
+}
+
+.dots span.is-on {
+  background: #8c2f1b;
+}
+
+.lesson-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex: none;
+}
+
+.lesson-actions button,
 #fly,
 #again {
   width: 100%;
@@ -259,9 +313,32 @@ h2 {
   cursor: pointer;
 }
 
+.lesson-actions button:hover,
 #fly:hover,
 #again:hover {
   background: #a13b24;
+}
+
+.lesson-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.text-button {
+  margin-top: 8px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: #8c4a2f;
+  font: inherit;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  flex: none;
+}
+
+.text-button:hover {
+  color: #5c2414;
 }
 
 #tally-score,
@@ -276,7 +353,8 @@ h2 {
 
 @media (max-width: 560px) {
   #hangar,
-  #tally {
+  #tally,
+  #tutorial {
     padding: 20px 16px 16px;
   }
 

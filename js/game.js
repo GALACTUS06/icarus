@@ -87,6 +87,7 @@
     purse: 0,
     best: 0,
     equippedId: "basic",
+    seenTutorial: false,
     run: 0,
     y: 0,
     vy: 0,
@@ -168,6 +169,7 @@
           purse: state.purse,
           best: state.best,
           equippedId: state.equippedId,
+          seenTutorial: state.seenTutorial,
         })
       );
     } catch (error) {
@@ -183,11 +185,85 @@
       state.equippedId = WINGS.some((wing) => wing.id === data.equippedId)
         ? data.equippedId
         : "basic";
+      state.seenTutorial = Boolean(data.seenTutorial);
     } catch (error) {
       state.purse = 0;
       state.best = 0;
       state.equippedId = "basic";
+      state.seenTutorial = false;
     }
+  }
+
+  const LESSONS = [
+    {
+      title: "Hold to climb",
+      body: "Hold Space, or press and hold on the sky. Let go and he falls. The world moves forward on its own.",
+    },
+    {
+      title: "The sea ends it",
+      body: "Touch the water and the flight is over. If you never climb, that is where he goes.",
+    },
+    {
+      title: "Height fills the purse",
+      body: "The score grows as he travels. Near the waves it crawls. Higher up it grows much faster. When the flight ends, that score is added to your purse.",
+    },
+    {
+      title: "The wings fail suddenly",
+      body: "Stay high and the sky warms. The wax shines. Then the wings are gone, all at once, and he falls. Nothing tells you the height a pair can bear, and the sun does not stay still.",
+    },
+    {
+      title: "A bought pair lasts one flight",
+      body: "You begin with basic wax. Spend the purse in the hangar before you fly. The sea or the sun destroys the pair you bought. Unspent money remains, and the basic wings are always there.",
+    },
+  ];
+
+  const tutorialEl = document.getElementById("tutorial");
+  let lessonIndex = 0;
+
+  function renderLesson() {
+    const lesson = LESSONS[lessonIndex];
+    document.getElementById("lesson-step").textContent = `Lesson ${lessonIndex + 1} of ${LESSONS.length}`;
+    document.getElementById("lesson-title").textContent = lesson.title;
+    document.getElementById("lesson-body").textContent = lesson.body;
+    const dots = document.getElementById("lesson-dots");
+    dots.replaceChildren();
+    LESSONS.forEach((_, index) => {
+      const dot = document.createElement("span");
+      if (index === lessonIndex) dot.className = "is-on";
+      dots.append(dot);
+    });
+    const back = document.getElementById("lesson-back");
+    const next = document.getElementById("lesson-next");
+    const skip = document.getElementById("lesson-skip");
+    back.disabled = lessonIndex === 0;
+    const last = lessonIndex === LESSONS.length - 1;
+    next.textContent = last ? "Done" : "Next";
+    skip.hidden = last;
+  }
+
+  function openTutorial() {
+    if (state.mode === "flight") return;
+    if (state.mode !== "hangar") showHangar();
+    lessonIndex = 0;
+    tutorialEl.hidden = false;
+    renderLesson();
+  }
+
+  function closeTutorial() {
+    state.seenTutorial = true;
+    save();
+    tutorialEl.hidden = true;
+  }
+
+  function stepLesson(direction) {
+    const next = lessonIndex + direction;
+    if (next < 0) return;
+    if (next >= LESSONS.length) {
+      closeTutorial();
+      return;
+    }
+    lessonIndex = next;
+    renderLesson();
   }
 
   function renderHangar() {
@@ -257,6 +333,11 @@
     hudEl.hidden = true;
     hintEl.hidden = true;
     hangarEl.hidden = false;
+    tutorialEl.hidden = state.seenTutorial;
+    if (!state.seenTutorial) {
+      lessonIndex = 0;
+      renderLesson();
+    }
     renderHangar();
   }
 
@@ -281,6 +362,7 @@
     particles.length = 0;
     hudShown = -1;
     hangarEl.hidden = true;
+    tutorialEl.hidden = true;
     tallyEl.hidden = true;
     hudEl.hidden = false;
     hintEl.hidden = false;
@@ -840,6 +922,16 @@
   }
 
   window.addEventListener("keydown", (event) => {
+    if (event.code === "ArrowRight" && state.mode === "hangar" && !tutorialEl.hidden) {
+      event.preventDefault();
+      stepLesson(1);
+      return;
+    }
+    if (event.code === "ArrowLeft" && state.mode === "hangar" && !tutorialEl.hidden) {
+      event.preventDefault();
+      stepLesson(-1);
+      return;
+    }
     if (event.code !== "Space") return;
     event.preventDefault();
     if (state.mode === "flight") state.climbing = true;
@@ -872,6 +964,10 @@
     startFlight();
   });
   document.getElementById("again").addEventListener("click", showHangar);
+  document.getElementById("help").addEventListener("click", openTutorial);
+  document.getElementById("lesson-back").addEventListener("click", () => stepLesson(-1));
+  document.getElementById("lesson-next").addEventListener("click", () => stepLesson(1));
+  document.getElementById("lesson-skip").addEventListener("click", closeTutorial);
   window.addEventListener("resize", resize);
 
   load();
