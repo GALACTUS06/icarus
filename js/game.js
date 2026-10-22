@@ -3,9 +3,9 @@
 
   const SAVE_KEY = "icarus";
   const FORWARD = 120;
-  // Height is cubed and capped at the top of the sky, so a low pass
-  // pays a little and only the high air fills the purse.
-  const SCORE_RATE = 0.22;
+  // Height is squared and capped at the top of the sky. The square still
+  // favors altitude, but a regular pair can earn in the band it can hold.
+  const SCORE_RATE = 0.32;
 
   const WINGS = [
     {
@@ -509,7 +509,7 @@
       const playfieldHeight = sea;
       const heightPay = Math.min(1, heightAboveSea / playfieldHeight);
       const distanceThisFrame = FORWARD * dt;
-      state.run += distanceThisFrame * heightPay ** 3 * SCORE_RATE;
+      state.run += distanceThisFrame * heightPay ** 2 * SCORE_RATE;
 
       if (!state.melted) {
         const ceiling = wing.ceiling + sunDrift(clock) * wing.drift;
