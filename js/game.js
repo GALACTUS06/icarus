@@ -12,15 +12,15 @@
       id: "basic",
       name: "Basic wax",
       price: 0,
-      blurb: "A first pair. Enough to leave the cliff.",
+      blurb: "A first pair. It will carry you into the middle sky.",
       feather: "#f4e4c4",
-      lift: 820,
-      gravity: 250,
-      maxRise: 280,
-      maxFall: 150,
-      ceiling: 0.5,
-      endurance: 1.1,
-      drift: 0.085,
+      lift: 1080,
+      gravity: 230,
+      maxRise: 360,
+      maxFall: 145,
+      ceiling: 0.64,
+      endurance: 1.7,
+      drift: 0.06,
       span: 1,
     },
     {
@@ -29,12 +29,12 @@
       price: 200,
       blurb: "Climbs easily, and a little more sky feels welcome.",
       feather: "#d7e0e8",
-      lift: 1180,
-      gravity: 220,
-      maxRise: 380,
-      maxFall: 135,
-      ceiling: 0.66,
-      endurance: 1.45,
+      lift: 1240,
+      gravity: 210,
+      maxRise: 420,
+      maxFall: 130,
+      ceiling: 0.76,
+      endurance: 1.9,
       drift: 0.08,
       span: 1.14,
     },
@@ -48,7 +48,7 @@
       gravity: 280,
       maxRise: 210,
       maxFall: 165,
-      ceiling: 0.58,
+      ceiling: 0.7,
       endurance: 3.15,
       drift: 0.065,
       span: 0.92,
@@ -63,7 +63,7 @@
       gravity: 240,
       maxRise: 420,
       maxFall: 145,
-      ceiling: 0.8,
+      ceiling: 0.86,
       endurance: 3.4,
       drift: 0.05,
       span: 1.26,
@@ -356,7 +356,7 @@
     state.shake = 0;
     state.hint = 1;
     state.worldX = 0;
-    state.y = seaLevel() * (1 - 0.4);
+    state.y = seaLevel() * (1 - 0.52);
     state.paidWing = wing.price > 0;
     climbingLast = false;
     particles.length = 0;
