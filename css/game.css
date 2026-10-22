@@ -1,0 +1,286 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #07141c;
+  color: #2a1c12;
+  font-family: Palatino, "Palatino Linotype", "Iowan Old Style", Georgia, serif;
+}
+
+#stage {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: #07141c;
+}
+
+#view {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+#hud {
+  position: absolute;
+  z-index: 2;
+  top: 22px;
+  left: 24px;
+  color: #fff8ea;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  user-select: none;
+}
+
+#hud-score {
+  margin: 0;
+  font-size: clamp(36px, 5vw, 56px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+#hud-purse {
+  margin: 6px 0 0;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+#hud-hint {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 28px;
+  margin: 0;
+  transform: translateX(-50%);
+  color: #fff8ea;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+#hangar[hidden],
+#tally[hidden],
+#hud[hidden],
+#hud-hint[hidden] {
+  display: none;
+}
+
+#hangar,
+#tally {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(640px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 22px 22px 16px;
+  border-radius: 18px;
+  background: rgba(243, 230, 200, 0.95);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  flex: none;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8c4a2f;
+}
+
+h1,
+h2 {
+  margin: 0;
+  flex: none;
+  font-weight: 600;
+  font-size: clamp(36px, 7vw, 64px);
+  line-height: 0.95;
+}
+
+.lede,
+#tally-score,
+#tally-wings,
+.note,
+.hint-line {
+  line-height: 1.45;
+}
+
+.lede {
+  margin: 10px 0 0;
+  flex: none;
+  font-size: 17px;
+}
+
+.stats {
+  display: grid;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.stats div {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 250, 240, 0.7);
+}
+
+.stats span {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7a5b45;
+}
+
+.stats strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wings {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.wing {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  grid-template-areas:
+    "swatch name price"
+    "swatch blurb blurb"
+    "swatch tag tag";
+  column-gap: 12px;
+  row-gap: 2px;
+  width: 100%;
+  flex: none;
+  padding: 10px 12px;
+  border: 1px solid rgba(90, 58, 36, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 250, 240, 0.55);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wing:hover:not(:disabled) {
+  background: rgba(255, 250, 240, 0.95);
+}
+
+.wing.is-equipped {
+  border-color: #8c2f1b;
+  box-shadow: inset 0 0 0 1px #8c2f1b;
+}
+
+.wing:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+
+.swatch {
+  grid-area: swatch;
+  align-self: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(60, 40, 20, 0.25);
+}
+
+.wing-name {
+  grid-area: name;
+  font-size: 18px;
+}
+
+.wing-price {
+  grid-area: price;
+  font-variant-numeric: tabular-nums;
+  color: #6d4632;
+}
+
+.wing-blurb {
+  grid-area: blurb;
+  color: #5c4636;
+}
+
+.wing-tag {
+  grid-area: tag;
+  margin-top: 4px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8c2f1b;
+}
+
+.note,
+.hint-line {
+  margin: 10px 0 0;
+  flex: none;
+  color: #5c4636;
+  font-size: 15px;
+}
+
+.hint-line {
+  margin-top: 8px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+#fly,
+#again {
+  width: 100%;
+  flex: none;
+  margin-top: 12px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #8c2f1b;
+  color: #f8efe0;
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+#fly:hover,
+#again:hover {
+  background: #a13b24;
+}
+
+#tally-score,
+#tally-wings {
+  margin: 12px 0 0;
+  font-size: 18px;
+}
+
+#tally h2 {
+  font-size: clamp(32px, 5vw, 48px);
+}
+
+@media (max-width: 560px) {
+  #hangar,
+  #tally {
+    padding: 20px 16px 16px;
+  }
+
+  .stats strong {
+    font-size: 22px;
+  }
+}

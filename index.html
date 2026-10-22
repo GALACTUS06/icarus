@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Icarus</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="view" aria-hidden="true"></canvas>
+    <div id="hud" hidden>
+      <p id="hud-score">0</p>
+      <p id="hud-purse">Purse 0</p>
+    </div>
+    <p id="hud-hint" hidden>Hold to climb</p>
+    <section id="hangar">
+      <p class="eyebrow">A flight over the sea</p>
+      <h1>Icarus</h1>
+      <p class="lede">The waves pay almost nothing. The score lives higher up, where the wax starts to worry. Nothing on the wings tells you how high they can bear.</p>
+      <div class="stats">
+        <div>
+          <span>Purse</span>
+          <strong id="purse">0</strong>
+        </div>
+        <div>
+          <span>Best flight</span>
+          <strong id="best">0</strong>
+        </div>
+      </div>
+      <div id="wings" class="wings"></div>
+      <p class="note">You pay for the pair you take into the sky. A failed flight spends them.</p>
+      <button id="fly" type="button">Fly</button>
+      <p class="hint-line">Hold space, or press and hold on the sky.</p>
+    </section>
+    <section id="tally" hidden aria-live="polite">
+      <p class="eyebrow" id="tally-cause"></p>
+      <h2 id="tally-title"></h2>
+      <p id="tally-score"></p>
+      <p id="tally-wings"></p>
+      <button id="again" type="button">Return to the hangar</button>
+    </section>
+  </div>
+  <script src="js/game.js"></script>
+</body>
+</html>
