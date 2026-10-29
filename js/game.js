@@ -123,6 +123,8 @@
   const particles = [];
   const birds = [];
   const maws = [];
+  const thermals = [];
+  const flocks = [];
   let clock = 0;
   let last = 0;
   let hudShown = -1;
@@ -193,7 +195,7 @@
     state.spellAge += dt;
     if (!state.nextSpell) {
       if (state.spellAge < state.spellLength) return;
-      const options = ["heat", "rain", "rain", "cloud", "wind", "wind"].filter((spell) => spell !== state.spell);
+      const options = ["heat", "rain", "rain", "cloud", "wind", "wind", "night", "night"].filter((spell) => spell !== state.spell);
       state.nextSpell = options[Math.floor(Math.random() * options.length)];
       state.blend = 0;
       return;
@@ -205,6 +207,13 @@
     state.blend = 0;
     state.spellAge = 0;
     state.spellLength = 8 + Math.random() * 5;
+  }
+
+  function nightFade(distance) {
+    const night = state.mode === "flight" ? weatherWeight("night") : 0;
+    if (night < 0.05) return 1;
+    const seen = distance < 78 ? 1 : distance > 168 ? 0 : 1 - (distance - 78) / 90;
+    return 1 - night * (1 - seen);
   }
 
   function warningLook(heat) {
@@ -268,8 +277,12 @@
       body: "Gulls cross the path. Hit one and it falls. Feathers come off your wings too. The wings look worse and climb worse. Enough tears and they come apart, all at once. Nothing counts the damage for you.",
     },
     {
+      title: "The air has its own mind",
+      body: "A pale column lifts him even when you let go, and it leans toward the sun. At night the wax rests, but gulls and the sea stay hidden until they are close. A line of gulls has gaps. Slip through, or they tear the wings together.",
+    },
+    {
       title: "The sky changes",
-      body: "Heat hurries the wax. Rain weighs the wings, and they climb less. Cloud hides the sun and brings more gulls. Wind shoves from whichever way it is blowing. You can see each one. Nothing names it while you fly.",
+      body: "Heat hurries the wax. Rain weighs the wings, and they climb less. Cloud hides the sun and brings more gulls. Wind shoves from whichever way it is blowing. Night puts the sun out. You can see each one. Nothing names it while you fly.",
     },
     {
       title: "A bought pair lasts one flight",
@@ -626,14 +639,51 @@
     return "squid";
   }
 
+  function makeThermal(x) {
+    return { x, phase: Math.random() * Math.PI * 2 };
+  }
+
+  function flockLayout() {
+    const sea = Math.max(seaLevel(), 280);
+    const span = 192;
+    const base = Math.min(0.78, (span + 90) / sea + Math.random() * 0.06);
+    return [
+      { band: base, dy: 0 },
+      { band: base, dy: 42 },
+      { band: base, dy: 150 },
+      { band: base, dy: span },
+    ];
+  }
+
+  function makeFlock(x) {
+    const layout = flockLayout();
+    const phase = Math.random() * Math.PI * 2;
+    const members = [];
+    layout.forEach((slot) => {
+      const bird = makeBird(x);
+      bird.band = slot.band;
+      bird.dy = slot.dy;
+      bird.flock = true;
+      bird.phase = phase;
+      members.push(bird);
+      birds.push(bird);
+    });
+    return { x, members };
+  }
+
   function seedHazards() {
     birds.length = 0;
     maws.length = 0;
+    thermals.length = 0;
+    flocks.length = 0;
     for (let index = 0; index < 4; index += 1) {
       birds.push(makeBird(680 + index * 560 + Math.random() * 80));
     }
     maws.push(makeMaw(1.1 + Math.random() * 1.4));
     maws.push(makeMaw(2.4 + Math.random() * 1.8));
+    thermals.push(makeThermal(980));
+    thermals.push(makeThermal(980 + 1480));
+    flocks.push(makeFlock(1560));
   }
 
   function recycleHazard(list, margin, gap, make) {
@@ -653,11 +703,16 @@
     });
   }
 
+  function thermalXAt(thermal, y) {
+    const rise = Math.max(0, seaLevel() - y);
+    return thermal.x - state.worldX + rise * 0.32;
+  }
+
   function birdPlace(bird) {
     const sea = seaLevel();
     return {
       x: bird.x - state.worldX,
-      y: sea * (1 - bird.band) + Math.sin(clock * 2.4 + bird.phase) * 14,
+      y: sea * (1 - bird.band) + (bird.dy || 0) + Math.sin(clock * 2.4 + bird.phase) * 14,
     };
   }
 
@@ -730,27 +785,68 @@
         if (bird.deadY + bird.fall > sea + 12) bird.x = state.worldX - 420;
         return;
       }
-      bird.x -= 22 * dt;
+      if (!bird.flock) bird.x -= 22 * dt;
     });
-    if (cloud > 0.65 && birds.length < 6) {
+    flocks.forEach((flock) => {
+      flock.x -= 22 * dt;
+      flock.members.forEach((bird) => {
+        if (!bird.dead) bird.x = flock.x;
+      });
+      if (flock.x - state.worldX < -200) {
+        let furthest = state.worldX + 640;
+        flocks.forEach((other) => {
+          furthest = Math.max(furthest, other.x);
+        });
+        flock.x = furthest + 720 + Math.random() * 180;
+        const layout = flockLayout();
+        const phase = Math.random() * Math.PI * 2;
+        flock.members.forEach((bird, index) => {
+          const slot = layout[index] || layout[layout.length - 1];
+          bird.x = flock.x;
+          bird.band = slot.band;
+          bird.dy = slot.dy;
+          bird.phase = phase;
+          bird.struck = false;
+          bird.dead = false;
+          bird.fall = 0;
+          bird.vy = 0;
+          bird.spin = 0;
+        });
+      }
+    });
+    const soloCount = birds.filter((bird) => !bird.flock).length;
+    if (cloud > 0.65 && soloCount < 6) {
       let furthest = state.worldX + 240;
       birds.forEach((bird) => {
-        furthest = Math.max(furthest, bird.x);
+        if (!bird.flock) furthest = Math.max(furthest, bird.x);
       });
       birds.push(makeBird(furthest + 300 + Math.random() * 80));
     }
-    if (cloud < 0.35 && birds.length > 4) {
+    if (cloud < 0.35 && soloCount > 4) {
       for (let index = birds.length - 1; index >= 0; index -= 1) {
-        if (birds.length <= 4) break;
+        if (birds.filter((bird) => !bird.flock).length <= 4) break;
+        if (birds[index].flock) continue;
         if (birds[index].x - state.worldX < -180) birds.splice(index, 1);
       }
     }
-    recycleHazard(birds, 180, cloud > 0.5 ? 340 : 520, makeBird);
+    recycleHazard(birds.filter((bird) => !bird.flock), 180, cloud > 0.5 ? 340 : 520, makeBird);
+    let thermalFurthest = state.worldX;
+    thermals.forEach((thermal) => {
+      thermalFurthest = Math.max(thermalFurthest, thermal.x);
+    });
+    thermals.forEach((thermal) => {
+      if (thermal.x - state.worldX < -160) {
+        thermalFurthest += 1320 + Math.random() * 280;
+        thermal.x = thermalFurthest;
+        thermal.phase = Math.random() * Math.PI * 2;
+      }
+    });
     if (state.melted || state.crashed) return;
 
     const heightAboveSea = Math.max(0, sea - state.y);
     birds.forEach((bird) => {
-      if (bird.struck || state.hurt > 0 || state.melted) return;
+      if (bird.struck || state.melted) return;
+      if (!bird.flock && state.hurt > 0) return;
       const place = birdPlace(bird);
       const dx = place.x - bodyX();
       const dy = place.y - state.y;
@@ -836,17 +932,19 @@
       const rainW = weatherWeight("rain");
       const cloudW = weatherWeight("cloud");
       const windW = weatherWeight("wind");
+      const nightW = weatherWeight("night");
 
       if (!state.melted) {
         const ceiling = ceilingNow(wing);
         const ratio = heightAboveSea / playfieldHeight;
-        const heatScale = (1 + 0.7 * heatW) * (1 - 0.35 * cloudW);
+        const heatScale = (1 + 0.7 * heatW) * (1 - 0.35 * cloudW) * (1 - 0.82 * nightW);
         if (ratio > ceiling) {
           const over = (ratio - ceiling) / Math.max(0.12, 1 - wing.ceiling);
           state.heat += ((dt * (0.55 + over * 1.85)) / wing.endurance) * heatScale;
         } else {
           state.heat -= dt * (0.32 + (ceiling - ratio) * 0.9);
         }
+        state.heat -= dt * 0.5 * nightW;
         state.heat = clamp(state.heat, 0, 1);
         if (state.heat >= 1) meltWings();
       }
@@ -868,7 +966,15 @@
           state.blowX += Math.cos(state.gustAngle) * state.gustPower * windW * dt;
           state.blowY += Math.sin(state.gustAngle) * state.gustPower * windW * dt;
         }
-        state.flap += dt * (state.climbing ? 14 : 2.2);
+        const insideThermal = thermals.some((thermal) => Math.abs(thermalXAt(thermal, state.y) - bodyX()) < 52);
+        if (insideThermal) {
+          const carry = 100;
+          if (state.vy > -carry) {
+            state.vy -= (gravity + 200) * dt;
+            state.vy = Math.max(state.vy, -carry);
+          }
+        }
+        state.flap += dt * (state.climbing || insideThermal ? 14 : 2.2);
         if (state.climbing && !climbingLast) tone(240, 0.07, "sine", 0.025, 360);
       } else {
         state.vy += wing.gravity * 1.35 * dt;
@@ -944,24 +1050,38 @@
     const mid = mix(mix(mix("#5aa0d4", "#e8844a", look * 0.55), "#e7a24a", heatW * 0.55), "#7d909e", wet * 0.9);
     const low = mix(mix("#f0c98a", "#ffb088", look * 0.4), "#d7dee4", Math.max(rainW * 0.65, cloudW * 0.45));
     const seaTint = mix(mix("#14596c", "#c45a3a", look * 0.25), "#3d6570", rainW * 0.4);
+    const nightW = state.mode === "flight" ? weatherWeight("night") : 0;
+    const nightTop = mix(top, "#070b16", nightW * 0.94);
+    const nightMid = mix(mid, "#12182c", nightW * 0.9);
+    const nightLow = mix(low, "#1a2436", nightW * 0.78);
+    const nightSea = mix(seaTint, "#071018", nightW * 0.55);
     const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, top);
-    gradient.addColorStop(0.45, mid);
-    gradient.addColorStop(0.78, low);
-    gradient.addColorStop(1, seaTint);
+    gradient.addColorStop(0, nightTop);
+    gradient.addColorStop(0.45, nightMid);
+    gradient.addColorStop(0.78, nightLow);
+    gradient.addColorStop(1, nightSea);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, w, h);
+    if (nightW > 0.12) {
+      ctx.fillStyle = `rgba(255, 248, 230, ${0.85 * nightW})`;
+      for (let index = 0; index < 48; index += 1) {
+        const sx = ((index * 97) % w) + ((index * 13) % 5);
+        const sy = ((index * 53) % (h * 0.62)) + 8;
+        ctx.fillRect(sx, sy, index % 7 === 0 ? 2 : 1.2, index % 7 === 0 ? 2 : 1.2);
+      }
+    }
   }
 
   function drawSun(look) {
     const drift = sunDrift(clock);
     const heatW = state.mode === "flight" ? weatherWeight("heat") : 0;
+    const nightW = state.mode === "flight" ? weatherWeight("night") : 0;
     const dim = state.mode === "flight" ? Math.max(weatherWeight("cloud"), weatherWeight("rain") * 0.75) : 0;
     const x = state.logicalW * 0.8;
     const y = state.logicalH * 0.14 + drift * 10;
     const radius = 34 + look * 26 + heatW * 16;
     ctx.save();
-    ctx.globalAlpha = 1 - dim * 0.62;
+    ctx.globalAlpha = (1 - dim * 0.62) * (1 - nightW * 0.94);
     const glow = ctx.createRadialGradient(x, y, 8, x, y, radius * 4.2);
     glow.addColorStop(0, "rgba(255, 246, 214, 0.95)");
     glow.addColorStop(0.18, `rgba(255, 196, 92, ${0.5 + look * 0.35})`);
@@ -1028,7 +1148,34 @@
     ctx.fill();
   }
 
+  function drawThermals() {
+    if (state.mode !== "flight") return;
+    const sea = seaLevel();
+    thermals.forEach((thermal) => {
+      const foot = thermalXAt(thermal, sea);
+      if (foot < -120 || foot > state.logicalW + 160) return;
+      ctx.save();
+      for (let step = 0; step < 16; step += 1) {
+        const y = sea - 10 - step * ((sea - 36) / 16);
+        const x = thermalXAt(thermal, y);
+        const wobble = Math.sin(clock * 2.6 + thermal.phase + step * 0.45) * 5;
+        ctx.fillStyle = `rgba(255, 246, 220, ${0.11 + (step % 3) * 0.03})`;
+        ctx.beginPath();
+        ctx.ellipse(x + wobble, y, 36, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255, 252, 236, 0.2)";
+        ctx.beginPath();
+        ctx.ellipse(x + wobble * 0.4, y, 14, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+  }
+
   function drawBirds(scroll) {
+    const nightW = state.mode === "flight" ? weatherWeight("night") : 0;
+    ctx.save();
+    ctx.globalAlpha = 1 - nightW * 0.92;
     ctx.strokeStyle = "rgba(48, 36, 30, 0.4)";
     ctx.lineWidth = 1.4;
     for (let index = 0; index < 6; index += 1) {
@@ -1041,6 +1188,7 @@
       ctx.quadraticCurveTo(x + 19, y - 5, x + 26, y);
       ctx.stroke();
     }
+    ctx.restore();
   }
 
   function drawHazardBirds() {
@@ -1051,8 +1199,11 @@
       const y = bird.dead ? bird.deadY + bird.fall : place.y;
       if (place.x < -60 || place.x > state.logicalW + 60) return;
       if (bird.dead && y > sea + 6) return;
+      const fade = nightFade(Math.hypot(place.x - bodyX(), y - state.y));
+      if (fade < 0.03) return;
       const beat = Math.sin(clock * 9 + bird.phase);
       ctx.save();
+      ctx.globalAlpha = fade;
       ctx.translate(place.x, y);
       if (bird.dead) ctx.rotate(bird.spin);
       ctx.fillStyle = "#f7f1e4";
@@ -1197,6 +1348,8 @@
       if (maw.life <= 0) return;
       const x = maw.x - state.worldX;
       if (x < -80 || x > state.logicalW + 80) return;
+      const fade = nightFade(Math.abs(x - bodyX()));
+      if (fade < 0.03) return;
       const surface = waveAt(x, state.worldX, clock, sea);
       const reach = maw.strike > 0 ? strikeReach(maw.strike) : 0;
       const emerge = Math.min(1, maw.life / 0.2);
@@ -1204,6 +1357,8 @@
       const shown = emerge * (1 - sink);
       const jump = shown * (maw.kind === "squid" ? 36 : 26) + reach * (maw.kind === "shark" ? 0.72 : 0.85);
 
+      ctx.save();
+      ctx.globalAlpha = fade;
       ctx.fillStyle = `rgba(210, 236, 234, ${0.28 * shown})`;
       ctx.beginPath();
       ctx.ellipse(x, surface + 2, 18 + shown * 16, 5, 0, 0, Math.PI * 2);
@@ -1218,6 +1373,7 @@
       if (maw.kind === "shark") drawShark(jump, reach);
       else if (maw.kind === "squid") drawSquid(reach);
       else drawFish(jump);
+      ctx.restore();
       ctx.restore();
     });
   }
@@ -1458,6 +1614,7 @@
     drawSun(look);
     drawMountains(sea, scroll);
     drawClouds(scroll);
+    drawThermals();
     drawBirds(scroll);
     drawHazardBirds();
     const cliff = drawCliff(sea, scroll);
