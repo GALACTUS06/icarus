@@ -6,11 +6,11 @@ A one-page flight over the sea. Climb as high as the wax will bear. The sun, the
 
 The first visit opens the lessons on the hangar. After that, **How to fly** brings them back. During a flight the corner of the screen shows only the score and the purse. Nothing there names a height, a limit, or how many tears the wings have left.
 
-![The hangar](eportfolio/hangar.png)
-
 ## Hold to climb
 
 Hold Space, or press and hold on the sky. Let go and he falls. The world moves forward on its own.
+
+![Holding the climb above the sea](screenshots/climb.png)
 
 ## How the score grows
 
@@ -22,9 +22,15 @@ When the flight ends, that score is added to the purse. The purse stays in this 
 
 The line that does this is in `js/game.js`, inside `updateFlight`.
 
+![Low over the waves, the score has barely moved](screenshots/score-low.png)
+
+![High, near the sun, the same kind of flight is worth much more](screenshots/score-high.png)
+
 ## The wings
 
 You begin with basic wax. Spend the purse in the hangar before you fly. Switching pairs before takeoff gives back what you have not yet spent in the air.
+
+![The hangar, with the four pairs](eportfolio/hangar.png)
 
 | Pair | Price | What the hangar says |
 | --- | --- | --- |
@@ -39,6 +45,8 @@ A bought pair lasts one flight. The sea, the things in it, a bird, or the sun de
 
 Stay high and the sky warms. The wax shines. Then the wings are gone, all at once, and he falls. Nothing tells you the height a pair can bear, and the sun does not stay still.
 
+![The sky warms when he stays too high](screenshots/wax.png)
+
 ![The wings gave out](eportfolio/wings-gave-out.png)
 
 ## Birds
@@ -47,17 +55,23 @@ Gulls cross the path one at a time, and also in a loose scatter. The scatter is 
 
 Hit one and it falls. Feathers come off the wings too. The wings look worse and climb worse. Enough tears and they come apart, all at once. Nothing counts the damage for you. Gulls you miss keep flying.
 
+![Gulls scattered across the path, with room to slip between them](screenshots/gulls.png)
+
 ## The sea
 
 Touch the water and the flight is over. If you never climb, that is where he goes.
 
 Fish, sharks, and squid stay hidden, then show up suddenly near him. They only matter if he is low. Stay over one and it can rise out of the water and take him. High flight is out of their reach. At night you do not see them until they are close.
 
+![A shark breaks the surface under a low flight](screenshots/sea.png)
+
 ## Columns
 
 A pale column of rising air lifts him even when you let go, and it leans toward the sun. That is a free climb in a direction you did not choose. Ride it, or slip out before the wax shines.
 
 Columns are not copies of each other. Some are short and barely leave the water. Some are thin. Some start higher and reach much farther toward the sun. Staying inside a tall one is the dangerous choice.
+
+![A short column by the cliff, and a tall one leaning into the sun](screenshots/columns.png)
 
 ## Weather
 
@@ -69,7 +83,15 @@ The sky fades from one spell to the next. A flight begins clear. You can see eac
 - **Wind** shoves from whichever way it is blowing. The direction is random, and it changes.
 - **Night** puts the sun out, so the wax rests. Gulls and the things in the sea are only visible when they are close. The score can stay high. The danger is what you cannot see.
 
-![A flight over the sea](eportfolio/flight.png)
+![Heat](screenshots/heat.png)
+
+![Rain](screenshots/rain.png)
+
+![Cloud](screenshots/cloud.png)
+
+![Wind](screenshots/wind.png)
+
+![Night. A gull is visible only because it is close](screenshots/night.png)
 
 ## Run it locally
 
