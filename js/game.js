@@ -278,7 +278,7 @@
     },
     {
       title: "The air has its own mind",
-      body: "A pale column lifts him even when you let go, and it leans toward the sun. At night the wax rests, but gulls and the sea stay hidden until they are close. A line of gulls has gaps. Slip through, or they tear the wings together.",
+      body: "A pale column lifts him even when you let go, and it leans toward the sun. Some columns are short. Some reach much higher. At night the wax rests, but gulls and the sea stay hidden until they are close. Gulls cross in a loose scatter. Slip between them.",
     },
     {
       title: "The sky changes",
@@ -640,35 +640,67 @@
   }
 
   function makeThermal(x) {
-    return { x, phase: Math.random() * Math.PI * 2 };
+    const base = Math.random() * 0.2;
+    const reach = Math.min(0.96, base + 0.26 + Math.random() * 0.52);
+    return {
+      x,
+      phase: Math.random() * Math.PI * 2,
+      lean: 0.08 + Math.random() * 0.4,
+      breadth: 26 + Math.random() * 28,
+      base,
+      reach,
+    };
   }
 
   function flockLayout() {
     const sea = Math.max(seaLevel(), 280);
-    const span = 192;
-    const base = Math.min(0.78, (span + 90) / sea + Math.random() * 0.06);
-    return [
-      { band: base, dy: 0 },
-      { band: base, dy: 42 },
-      { band: base, dy: 150 },
-      { band: base, dy: span },
-    ];
+    const ceiling = sea - 52;
+    let count = 3 + Math.floor(Math.random() * 3);
+    while (count > 2 && 58 + (count - 1) * 100 > ceiling) count -= 1;
+    const slots = [];
+    let above = 58 + Math.random() * 36;
+    for (let index = 0; index < count; index += 1) {
+      if (above > ceiling) break;
+      slots.push({
+        band: above / sea,
+        dx: Math.round(Math.random() * 240 - 90),
+        phase: Math.random() * Math.PI * 2,
+      });
+      const remaining = count - slots.length;
+      const roomLeft = ceiling - above;
+      const free = roomLeft - remaining * 100;
+      above += 100 + Math.random() * Math.max(0, Math.min(130, free));
+    }
+    return slots;
+  }
+
+  function releaseFlock(flock) {
+    flock.members.forEach((bird) => {
+      const index = birds.indexOf(bird);
+      if (index >= 0) birds.splice(index, 1);
+    });
+    flock.members = [];
+  }
+
+  function fillFlock(flock, x) {
+    releaseFlock(flock);
+    flock.x = x;
+    flockLayout().forEach((slot) => {
+      const bird = makeBird(x + slot.dx);
+      bird.band = slot.band;
+      bird.dx = slot.dx;
+      bird.dy = 0;
+      bird.flock = true;
+      bird.phase = slot.phase;
+      flock.members.push(bird);
+      birds.push(bird);
+    });
   }
 
   function makeFlock(x) {
-    const layout = flockLayout();
-    const phase = Math.random() * Math.PI * 2;
-    const members = [];
-    layout.forEach((slot) => {
-      const bird = makeBird(x);
-      bird.band = slot.band;
-      bird.dy = slot.dy;
-      bird.flock = true;
-      bird.phase = phase;
-      members.push(bird);
-      birds.push(bird);
-    });
-    return { x, members };
+    const flock = { x, members: [] };
+    fillFlock(flock, x);
+    return flock;
   }
 
   function seedHazards() {
@@ -705,7 +737,21 @@
 
   function thermalXAt(thermal, y) {
     const rise = Math.max(0, seaLevel() - y);
-    return thermal.x - state.worldX + rise * 0.32;
+    return thermal.x - state.worldX + rise * thermal.lean;
+  }
+
+  function thermalBounds(thermal) {
+    const sea = seaLevel();
+    return {
+      bottom: sea * (1 - thermal.base),
+      top: sea * (1 - thermal.reach),
+    };
+  }
+
+  function insideThermalColumn(thermal) {
+    const bounds = thermalBounds(thermal);
+    if (state.y > bounds.bottom || state.y < bounds.top) return false;
+    return Math.abs(thermalXAt(thermal, state.y) - bodyX()) < thermal.breadth;
   }
 
   function birdPlace(bird) {
@@ -790,28 +836,14 @@
     flocks.forEach((flock) => {
       flock.x -= 22 * dt;
       flock.members.forEach((bird) => {
-        if (!bird.dead) bird.x = flock.x;
+        if (!bird.dead) bird.x = flock.x + (bird.dx || 0);
       });
-      if (flock.x - state.worldX < -200) {
+      if (flock.x - state.worldX < -280) {
         let furthest = state.worldX + 640;
         flocks.forEach((other) => {
           furthest = Math.max(furthest, other.x);
         });
-        flock.x = furthest + 720 + Math.random() * 180;
-        const layout = flockLayout();
-        const phase = Math.random() * Math.PI * 2;
-        flock.members.forEach((bird, index) => {
-          const slot = layout[index] || layout[layout.length - 1];
-          bird.x = flock.x;
-          bird.band = slot.band;
-          bird.dy = slot.dy;
-          bird.phase = phase;
-          bird.struck = false;
-          bird.dead = false;
-          bird.fall = 0;
-          bird.vy = 0;
-          bird.spin = 0;
-        });
+        fillFlock(flock, furthest + 720 + Math.random() * 220);
       }
     });
     const soloCount = birds.filter((bird) => !bird.flock).length;
@@ -836,9 +868,8 @@
     });
     thermals.forEach((thermal) => {
       if (thermal.x - state.worldX < -160) {
-        thermalFurthest += 1320 + Math.random() * 280;
-        thermal.x = thermalFurthest;
-        thermal.phase = Math.random() * Math.PI * 2;
+        thermalFurthest += 1100 + Math.random() * 520;
+        Object.assign(thermal, makeThermal(thermalFurthest));
       }
     });
     if (state.melted || state.crashed) return;
@@ -966,7 +997,7 @@
           state.blowX += Math.cos(state.gustAngle) * state.gustPower * windW * dt;
           state.blowY += Math.sin(state.gustAngle) * state.gustPower * windW * dt;
         }
-        const insideThermal = thermals.some((thermal) => Math.abs(thermalXAt(thermal, state.y) - bodyX()) < 52);
+        const insideThermal = thermals.some((thermal) => insideThermalColumn(thermal));
         if (insideThermal) {
           const carry = 100;
           if (state.vy > -carry) {
@@ -1150,22 +1181,26 @@
 
   function drawThermals() {
     if (state.mode !== "flight") return;
-    const sea = seaLevel();
     thermals.forEach((thermal) => {
-      const foot = thermalXAt(thermal, sea);
-      if (foot < -120 || foot > state.logicalW + 160) return;
+      const bounds = thermalBounds(thermal);
+      const xBottom = thermalXAt(thermal, bounds.bottom);
+      const xTop = thermalXAt(thermal, bounds.top);
+      if (Math.max(xBottom, xTop) < -90 || Math.min(xBottom, xTop) > state.logicalW + 120) return;
+      const span = Math.max(24, bounds.bottom - bounds.top);
+      const steps = Math.max(4, Math.round(span / 32));
       ctx.save();
-      for (let step = 0; step < 16; step += 1) {
-        const y = sea - 10 - step * ((sea - 36) / 16);
+      for (let step = 0; step < steps; step += 1) {
+        const y = bounds.bottom - (step + 0.5) * (span / steps);
         const x = thermalXAt(thermal, y);
-        const wobble = Math.sin(clock * 2.6 + thermal.phase + step * 0.45) * 5;
-        ctx.fillStyle = `rgba(255, 246, 220, ${0.11 + (step % 3) * 0.03})`;
+        const wobble = Math.sin(clock * 2.6 + thermal.phase + step * 0.55) * 5;
+        const wide = thermal.breadth * (0.85 + (step % 3) * 0.08);
+        ctx.fillStyle = `rgba(255, 246, 220, ${0.1 + (step % 3) * 0.03})`;
         ctx.beginPath();
-        ctx.ellipse(x + wobble, y, 36, 20, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + wobble, y, wide, Math.min(22, span / steps), 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "rgba(255, 252, 236, 0.2)";
+        ctx.fillStyle = "rgba(255, 252, 236, 0.18)";
         ctx.beginPath();
-        ctx.ellipse(x + wobble * 0.4, y, 14, 16, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + wobble * 0.35, y, wide * 0.38, Math.min(16, span / steps), 0, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
